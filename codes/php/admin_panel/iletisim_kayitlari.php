@@ -17,8 +17,7 @@ $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Beydem Hırdavat - İletişim Ayarları</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        body {
+    <style>body {
             margin: 0;
             font-family: Arial, sans-serif;
             background-color: #f5f5f5;
@@ -29,6 +28,7 @@ $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
             display: flex;
             min-height: calc(100vh - 40px);
             gap: 20px;
+            position: relative;
         }
 
         .sidebar {
@@ -37,7 +37,10 @@ $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
             border-radius: 10px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
             padding: 20px 0;
-            flex-shrink: 0;
+            position: fixed;
+            top: 20px;
+            bottom: 20px;
+            overflow-y: auto;
         }
 
         .panel-title {
@@ -56,7 +59,7 @@ $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         .menu-item {
             padding: 12px 20px;
-            color: #666;
+            color: inherit;
             cursor: pointer;
             transition: all 0.3s ease;
             display: flex;
@@ -73,7 +76,7 @@ $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         .menu-item.active {
             background-color: #ff6b00;
-            color: white;
+            color: white !important;
         }
 
         .menu-item i {
@@ -82,6 +85,8 @@ $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
 
         .main-content {
+            margin-left: 300px;
+            width: calc(100% - 300px);
             flex-grow: 1;
             background: #fff;
             border-radius: 10px;
@@ -158,7 +163,11 @@ $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <td><?= htmlspecialchars($row['konu']) ?></td>
                 <td><?= htmlspecialchars($row['mesaj']) ?></td>
                 <td><?= htmlspecialchars($row['gonderim_tarihi']) ?></td>
-                <td><a href="delete_record.php?id=<?= $row['iletisim_id'] ?>" class="delete-btn"><i class="fas fa-trash"></i></a></td>
+                <td>
+                    <a href="delete_record.php?id=<?= $row['iletisim_id'] ?>" class="delete-btn" onclick="return false;">
+                        <i class="fas fa-trash"></i>
+                    </a>
+                </td>
             </tr>
             <?php endforeach; ?>
         </table>
@@ -203,6 +212,30 @@ $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 }
             }
         }
+
+        // Silme işlemi için event listener ekle
+        document.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                if (confirm('Bu kaydı silmek istediğinize emin misiniz?')) {
+                    const deleteUrl = this.getAttribute('href');
+                    
+                    fetch(deleteUrl)
+                        .then(response => {
+                            if (response.ok) {
+                                // Silme başarılı olduğunda satırı tablodan kaldır
+                                this.closest('tr').remove();
+                            } else {
+                                throw new Error('Silme işlemi başarısız oldu');
+                            }
+                        })
+                        .catch(error => {
+                            alert('Hata: ' + error.message);
+                        });
+                }
+            });
+        });
     </script>
 </body>
 </html>

@@ -12,8 +12,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $kategoriAdi = trim($_POST['kategori_adi']);
                 $parentId = !empty($_POST['parent_id']) ? $_POST['parent_id'] : null;
                 
-                $query = $db->prepare("INSERT INTO kategori (kategori_adi, parent_id) VALUES (?, ?)");
-                $query->execute([$kategoriAdi, $parentId]);
+                if (is_null($parentId)) {
+                    // Ana kategori ekleme
+                    $query = $db->prepare("INSERT INTO ana_kategori (ana_kategori_adi) VALUES (?)");
+                    $query->execute([$kategoriAdi]);
+                } else {
+                    // Alt kategori ekleme
+                    $query = $db->prepare("INSERT INTO alt_kategori (alt_kategori_adi, ana_kategori_id) VALUES (?, ?)");
+                    $query->execute([$kategoriAdi, $parentId]);
+                }
                 
                 $yeniId = $db->lastInsertId();
                 
@@ -30,34 +37,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             case 'sil':
                 $kategoriId = $_POST['kategori_id'];
+                $kategoriTip = $_POST['kategori_tip']; // 'ana' veya 'alt'
                 
-                // Önce alt kategorileri kontrol et
-                $altKategoriQuery = $db->prepare("SELECT COUNT(*) FROM kategori WHERE parent_id = ?");
-                $altKategoriQuery->execute([$kategoriId]);
-                $altKategoriSayisi = $altKategoriQuery->fetchColumn();
-                
-                if ($altKategoriSayisi > 0) {
-                    echo json_encode([
-                        'success' => false,
-                        'message' => 'Bu kategorinin alt kategorileri var. Önce alt kategorileri silmelisiniz.'
-                    ]);
-                    exit;
+                if ($kategoriTip === 'ana') {
+                    // Ana kategori silinirken alt kategorileri kontrol et
+                    $altKategoriQuery = $db->prepare("SELECT COUNT(*) FROM alt_kategori WHERE ana_kategori_id = ?");
+                    $altKategoriQuery->execute([$kategoriId]);
+                    $altKategoriSayisi = $altKategoriQuery->fetchColumn();
+                    
+                    if ($altKategoriSayisi > 0) {
+                        echo json_encode([
+                            'success' => false,
+                            'message' => 'Bu kategorinin alt kategorileri var. Önce alt kategorileri silmelisiniz.'
+                        ]);
+                        exit;
+                    }
+                    
+                    // Ana kategoriyi sil
+                    $query = $db->prepare("DELETE FROM ana_kategori WHERE ana_kategori_id = ?");
+                } else {
+                    // Alt kategoriyi sil
+                    $query = $db->prepare("DELETE FROM alt_kategori WHERE alt_kategori_id = ?");
                 }
                 
-                // Kategoriye ait ürünleri kontrol et
-                $urunQuery = $db->prepare("SELECT COUNT(*) FROM urunler WHERE kategori_id = ?");
-                $urunQuery->execute([$kategoriId]);
-                $urunSayisi = $urunQuery->fetchColumn();
-                
-                if ($urunSayisi > 0) {
-                    echo json_encode([
-                        'success' => false,
-                        'message' => 'Bu kategoride ürünler var. Önce ürünleri silmelisiniz.'
-                    ]);
-                    exit;
-                }
-                
-                $query = $db->prepare("DELETE FROM kategori WHERE kategori_id = ?");
                 $query->execute([$kategoriId]);
                 
                 echo json_encode([
@@ -69,17 +71,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             case 'duzenle':
                 $kategoriId = $_POST['kategori_id'];
                 $kategoriAdi = trim($_POST['kategori_adi']);
+                $kategoriTip = $_POST['kategori_tip']; // 'ana' veya 'alt'
                 
-                $query = $db->prepare("UPDATE kategori SET kategori_adi = ? WHERE kategori_id = ?");
+                if ($kategoriTip === 'ana') {
+                    $query = $db->prepare("UPDATE ana_kategori SET ana_kategori_adi = ? WHERE ana_kategori_id = ?");
+                } else {
+                    $query = $db->prepare("UPDATE alt_kategori SET alt_kategori_adi = ? WHERE alt_kategori_id = ?");
+                }
+                
                 $query->execute([$kategoriAdi, $kategoriId]);
                 
                 echo json_encode([
                     'success' => true,
-                    'message' => 'Kategori başarıyla güncellendi',
-                    'kategori' => [
-                        'id' => $kategoriId,
-                        'adi' => $kategoriAdi
-                    ]
+                    'message' => 'Kategori başarıyla güncellendi'
                 ]);
                 exit;
         }
@@ -93,30 +97,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Normal sayfa yüklemesi için kategorileri çek
+// Kategorileri çek
 try {
     $db = Database::getInstance()->getConnection();
     
     // Ana kategorileri çek
-    $anaKategoriQuery = $db->prepare("SELECT kategori_id, kategori_adi FROM kategori WHERE parent_id IS NULL ORDER BY kategori_id");
+    $anaKategoriQuery = $db->prepare("
+        SELECT ana_kategori_id, ana_kategori_adi 
+        FROM ana_kategori 
+        ORDER BY ana_kategori_adi ASC
+    ");
     $anaKategoriQuery->execute();
     $anaKategoriler = $anaKategoriQuery->fetchAll(PDO::FETCH_ASSOC);
 
     // Alt kategorileri çek
     $altKategoriQuery = $db->prepare("
-        SELECT k1.kategori_id, k1.kategori_adi, k1.parent_id, k2.kategori_adi as parent_adi
-        FROM kategori k1
-        LEFT JOIN kategori k2 ON k1.parent_id = k2.kategori_id
-        WHERE k1.parent_id IS NOT NULL
-        ORDER BY k1.parent_id, k1.kategori_id
+        SELECT alt.alt_kategori_id, alt.alt_kategori_adi, alt.ana_kategori_id,
+               ana.ana_kategori_adi as parent_adi
+        FROM alt_kategori alt
+        JOIN ana_kategori ana ON alt.ana_kategori_id = ana.ana_kategori_id
+        ORDER BY ana.ana_kategori_adi ASC, alt.alt_kategori_adi ASC
     ");
     $altKategoriQuery->execute();
     $altKategoriler = $altKategoriQuery->fetchAll(PDO::FETCH_ASSOC);
 
-    // Alt kategorileri parent_id'ye göre grupla
+    // Alt kategorileri ana_kategori_id'ye göre grupla
     $grupluAltKategoriler = [];
     foreach ($altKategoriler as $kategori) {
-        $grupluAltKategoriler[$kategori['parent_id']][] = $kategori;
+        $grupluAltKategoriler[$kategori['ana_kategori_id']][] = $kategori;
     }
 
 } catch (Exception $e) {
@@ -133,7 +141,7 @@ try {
     <title>Beydem Hırdavat - Kategori Ayarları</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        body {
+    body {
             margin: 0;
             font-family: Arial, sans-serif;
             background-color: #f5f5f5;
@@ -144,6 +152,7 @@ try {
             display: flex;
             min-height: calc(100vh - 40px);
             gap: 20px;
+            position: relative;
         }
 
         .sidebar {
@@ -152,7 +161,10 @@ try {
             border-radius: 10px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
             padding: 20px 0;
-            flex-shrink: 0;
+            position: fixed;
+            top: 20px;
+            bottom: 20px;
+            overflow-y: auto;
         }
 
         .panel-title {
@@ -171,7 +183,7 @@ try {
 
         .menu-item {
             padding: 12px 20px;
-            color: #666;
+            color: inherit;
             cursor: pointer;
             transition: all 0.3s ease;
             display: flex;
@@ -188,7 +200,7 @@ try {
 
         .menu-item.active {
             background-color: #ff6b00;
-            color: white;
+            color: white !important;
         }
 
         .menu-item i {
@@ -197,7 +209,8 @@ try {
         }
 
         .main-content {
-            flex-grow: 1;
+            margin-left: 300px;
+            width: calc(100% - 300px);
             background: #fff;
             border-radius: 10px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
@@ -349,14 +362,20 @@ try {
 </head>
 <body>
     <div class="container">
-        <div class="sidebar">
+    <div class="sidebar">
             <h2 class="panel-title">PANEL AYARLARI</h2>
             <ul class="menu-list">
-                <a href="urun_ayarlari.php" class="menu-item">
-                    <i class="fas fa-box"></i>
-                    Ürün Ayarları
-                </a>
-                <a href="kategori_ayarlari.php" class="menu-item active">
+                <li class="menu-group">
+                    <a href="urun_ayarlari.php" class="menu-item active">
+                        <i class="fas fa-box"></i>
+                        Ürün Ayarları
+                    </a>
+                    <ul class="submenu">
+                        <li><a href="urun_ayarlari.php" class="menu-item">Ürünleri Görüntüle</a></li>
+                        <li><a href="urun_ekle.php" class="menu-item">Ürün Ekle</a></li>
+                    </ul>
+                </li>
+                <a href="kategori_ayarlari.php" class="menu-item">
                     <i class="fas fa-tags"></i>
                     Kategori Ayarları
                 </a>
@@ -364,59 +383,48 @@ try {
                     <i class="fas fa-address-book"></i>
                     İletişim Kayıtları
                 </a>
-                <a href="stok_kontrolleri.php" class="menu-item">
-                    <i class="fas fa-box-archive"></i>
-                    Stok Kontrolleri
-                </a>
-                <a href="satislar.php" class="menu-item">
-                    <i class="fas fa-shopping-cart"></i>
-                    Satışlar
-                </a>
             </ul>
         </div>
 
         <div class="main-content">
             <div class="kategori-header">
-                <a href="urun_ayarlari.php" class="geri-btn">
-                    <i class="fas fa-arrow-left"></i>
-                </a>
                 <h2 class="kategori-baslik">KATEGORİ AYARLARI</h2>
                 <div></div>
             </div>
 
             <div class="kategori-liste">
                 <?php foreach($anaKategoriler as $anaKategori): ?>
-                    <div class="ana-kategori" data-id="<?php echo $anaKategori['kategori_id']; ?>">
+                    <div class="ana-kategori" data-id="<?php echo $anaKategori['ana_kategori_id']; ?>">
                         <div class="ana-kategori-baslik">
                             <div class="kategori-adi">
                                 <i class="fas fa-chevron-right toggle-icon"></i>
-                                <span class="kategori-adi-text"><?php echo htmlspecialchars($anaKategori['kategori_adi']); ?></span>
+                                <span class="kategori-adi-text"><?php echo htmlspecialchars($anaKategori['ana_kategori_adi']); ?></span>
                             </div>
                             <div class="kategori-islemler">
                                 <button class="islem-btn yeni-alt-kategori-btn" title="Alt Kategori Ekle">
                                     <i class="fas fa-plus"></i>
                                 </button>
-                                <button class="islem-btn" title="Düzenle">
+                                <button class="islem-btn" title="Düzenle" data-tip="ana">
                                     <i class="fas fa-cog"></i>
                                 </button>
-                                <button class="islem-btn" title="Sil">
+                                <button class="islem-btn" title="Sil" data-tip="ana">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </div>
                         </div>
 
                         <div class="alt-kategoriler">
-                            <?php if(isset($grupluAltKategoriler[$anaKategori['kategori_id']])): ?>
-                                <?php foreach($grupluAltKategoriler[$anaKategori['kategori_id']] as $altKategori): ?>
-                                    <div class="kategori-item" data-id="<?php echo $altKategori['kategori_id']; ?>">
+                            <?php if(isset($grupluAltKategoriler[$anaKategori['ana_kategori_id']])): ?>
+                                <?php foreach($grupluAltKategoriler[$anaKategori['ana_kategori_id']] as $altKategori): ?>
+                                    <div class="kategori-item" data-id="<?php echo $altKategori['alt_kategori_id']; ?>">
                                         <span class="kategori-adi">
-                                            <?php echo htmlspecialchars($altKategori['kategori_adi']); ?>
+                                            <?php echo htmlspecialchars($altKategori['alt_kategori_adi']); ?>
                                         </span>
                                         <div class="kategori-islemler">
-                                            <button class="islem-btn" title="Düzenle">
+                                            <button class="islem-btn" title="Düzenle" data-tip="alt">
                                                 <i class="fas fa-cog"></i>
                                             </button>
-                                            <button class="islem-btn" title="Sil">
+                                            <button class="islem-btn" title="Sil" data-tip="alt">
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </div>
@@ -470,101 +478,120 @@ try {
 
         // Kategori ekleme işlemleri
         document.querySelectorAll('.ekle-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
+            btn.addEventListener('click', async function() {
                 const input = this.previousElementSibling;
                 const kategoriAdi = input.value.trim();
                 const anaKategori = this.closest('.ana-kategori');
                 const parentId = anaKategori ? anaKategori.dataset.id : null;
                 
-                if(kategoriAdi) {
+                if(!kategoriAdi) {
+                    alert('Kategori adı boş olamaz!');
+                    return;
+                }
+                
+                try {
                     const formData = new FormData();
                     formData.append('islem', 'ekle');
                     formData.append('kategori_adi', kategoriAdi);
-                    if(parentId) formData.append('parent_id', parentId);
+                    if(parentId) {
+                        formData.append('parent_id', parentId);
+                    }
                     
-                    fetch('kategori_ayarlari.php', {
+                    const response = await fetch('kategori_ayarlari.php', {
                         method: 'POST',
                         body: formData
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        alert(data.message);
-                        if(data.success) {
-                            location.reload();
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Hata:', error);
-                        alert('Bir hata oluştu');
                     });
+                    
+                    const data = await response.json();
+                    alert(data.message);
+                    
+                    if(data.success) {
+                        location.reload();
+                    }
+                } catch (error) {
+                    console.error('Hata:', error);
+                    alert('Bir hata oluştu');
                 }
             });
         });
 
         // Silme işlemi
         document.querySelectorAll('.islem-btn[title="Sil"]').forEach(btn => {
-            btn.addEventListener('click', function(e) {
+            btn.addEventListener('click', async function(e) {
                 e.stopPropagation();
                 const kategoriItem = this.closest('.kategori-item') || this.closest('.ana-kategori');
                 const kategoriId = kategoriItem.dataset.id;
-                const kategoriAdi = kategoriItem.querySelector('.kategori-adi').textContent.trim();
+                const kategoriTip = this.dataset.tip; // 'ana' veya 'alt'
+                const kategoriAdiElement = kategoriItem.querySelector('.kategori-adi-text') || 
+                                         kategoriItem.querySelector('.kategori-adi');
+                const kategoriAdi = kategoriAdiElement.textContent.trim();
 
-                if(confirm(`"${kategoriAdi}" kategorisini silmek istediğinize emin misiniz?`)) {
+                if(!confirm(`"${kategoriAdi}" kategorisini silmek istediğinize emin misiniz?`)) {
+                    return;
+                }
+
+                try {
                     const formData = new FormData();
                     formData.append('islem', 'sil');
                     formData.append('kategori_id', kategoriId);
+                    formData.append('kategori_tip', kategoriTip);
 
-                    fetch('kategori_ayarlari.php', {
+                    const response = await fetch('kategori_ayarlari.php', {
                         method: 'POST',
                         body: formData
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        alert(data.message);
-                        if(data.success) {
-                            location.reload();
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Hata:', error);
-                        alert('Bir hata oluştu');
                     });
+                    
+                    const data = await response.json();
+                    alert(data.message);
+                    
+                    if(data.success) {
+                        location.reload();
+                    }
+                } catch (error) {
+                    console.error('Hata:', error);
+                    alert('Bir hata oluştu');
                 }
             });
         });
 
         // Düzenleme işlemi
         document.querySelectorAll('.islem-btn[title="Düzenle"]').forEach(btn => {
-            btn.addEventListener('click', function(e) {
+            btn.addEventListener('click', async function(e) {
                 e.stopPropagation();
                 const kategoriItem = this.closest('.kategori-item') || this.closest('.ana-kategori');
                 const kategoriId = kategoriItem.dataset.id;
-                const kategoriAdiElement = kategoriItem.querySelector('.kategori-adi');
+                const kategoriTip = this.dataset.tip; // 'ana' veya 'alt'
+                const kategoriAdiElement = kategoriItem.querySelector('.kategori-adi-text') || 
+                                         kategoriItem.querySelector('.kategori-adi');
                 const mevcutAd = kategoriAdiElement.textContent.trim();
                 
                 const yeniAd = prompt('Yeni kategori adını giriniz:', mevcutAd);
                 
-                if(yeniAd && yeniAd !== mevcutAd) {
+                if(!yeniAd || yeniAd === mevcutAd) {
+                    return;
+                }
+
+                try {
                     const formData = new FormData();
                     formData.append('islem', 'duzenle');
                     formData.append('kategori_id', kategoriId);
                     formData.append('kategori_adi', yeniAd);
+                    formData.append('kategori_tip', kategoriTip);
 
-                    fetch('kategori_ayarlari.php', {
+                    const response = await fetch('kategori_ayarlari.php', {
                         method: 'POST',
                         body: formData
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        alert(data.message);
-                        if(data.success) {
-                            location.reload();
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Hata:', error);
-                        alert('Bir hata oluştu');
                     });
+                    
+                    const data = await response.json();
+                    alert(data.message);
+                    
+                    if(data.success) {
+                        location.reload();
+                    }
+                } catch (error) {
+                    console.error('Hata:', error);
+                    alert('Bir hata oluştu');
                 }
             });
         });

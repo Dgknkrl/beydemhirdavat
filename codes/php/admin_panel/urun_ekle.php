@@ -5,33 +5,27 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     try {
         $db = Database::getInstance()->getConnection();
 
-        // **HATA 1 ÇÖZÜMÜ: alt_kategori POST isteğinde gelmiyorsa varsayılan olarak NULL yap**
         $urun_adi = $_POST['urun_adi'];
         $marka_adi = $_POST['marka_adi'];
-        $ana_kategori = $_POST['ana_kategori'];
-        $alt_kategori = isset($_POST['alt_kategori']) ? $_POST['alt_kategori'] : null;
+        $ana_kategori_id = $_POST['ana_kategori'];
+        $alt_kategori_id = isset($_POST['alt_kategori']) ? $_POST['alt_kategori'] : null;
         $eklenme_tarihi = date("Y-m-d H:i:s");
 
-        // Kategori ID belirleme (alt kategori varsa onu kullan, yoksa ana kategoriyi al)
-        $kategori_id = !empty($alt_kategori) ? $alt_kategori : $ana_kategori;
+        // Ürün bilgilerini kaydet
+        $stmt_urun = $db->prepare("
+            INSERT INTO urunler (urun_adi, marka_adi, ana_kategori_id, alt_kategori_id, eklenme_tarihi) 
+            VALUES (?, ?, ?, ?, ?)
+        ");
+        $stmt_urun->execute([$urun_adi, $marka_adi, $ana_kategori_id, $alt_kategori_id, $eklenme_tarihi]);
 
-        // **1️⃣ Ürün Bilgilerini Kaydet (urun_id'yi AUTO_INCREMENT olarak alıyoruz)**
-        $stmt_urun = $db->prepare("INSERT INTO urunler (urun_adi, marka_adi, kategori_id, eklenme_tarihi) 
-                                   VALUES (?, ?, ?, ?)");
-        $stmt_urun->execute([$urun_adi, $marka_adi, $kategori_id, $eklenme_tarihi]);
+        $urun_id = $db->lastInsertId();
 
-        // **SON EKLENEN URUN ID'SINI AL**
-        $urun_id = $db->lastInsertId(); // 🔥 ÇÖZÜM: AUTO_INCREMENT ID al
-
-        // **HATA ÇÖZÜMÜ: resimler tablosunun var olup olmadığını kontrol et**
-        $checkTable = $db->query("SHOW TABLES LIKE 'resimler'");
-        if ($checkTable->rowCount() == 0) {
-            throw new Exception("Hata: 'resimler' tablosu bulunamadı! Lütfen MySQL'de tabloyu oluştur.");
-        }
-
-        // **2️⃣ Ürün Resimlerini Kaydet (`resimler` tablosuna ekleniyor)**
+        // Resimleri kaydet
         if (isset($_FILES['resimler']) && count($_FILES['resimler']['name']) == 4) {
-            $stmt_resim = $db->prepare("INSERT INTO resimler (urun_id, resim1, resim2, resim3, resim4) VALUES (?, ?, ?, ?, ?)");
+            $stmt_resim = $db->prepare("
+                INSERT INTO resimler (urun_id, resim1, resim2, resim3, resim4) 
+                VALUES (?, ?, ?, ?, ?)
+            ");
 
             $resimler = [];
             for ($i = 0; $i < 4; $i++) {
@@ -44,27 +38,22 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             }
 
             $stmt_resim->execute([$urun_id, $resimler[0], $resimler[1], $resimler[2], $resimler[3]]);
-        } else {
-            throw new Exception("Hata: 4 resim yüklenmelidir!");
         }
 
-        // **3️⃣ Ürün Özelliklerini Kaydet**
+        // Özellikleri kaydet
         if (!empty($_POST['ozellik_adi']) && !empty($_POST['ozellik_deger'])) {
-            $stmt_ozellik = $db->prepare("INSERT INTO urun_ozellik (urun_id, ozellik_adi, ozellik_deger) VALUES (?, ?, ?)");
-        
+            $stmt_ozellik = $db->prepare("
+                INSERT INTO urun_ozellik (urun_id, ozellik_adi, ozellik_deger) 
+                VALUES (?, ?, ?)
+            ");
+
             foreach ($_POST['ozellik_adi'] as $index => $ozellik_adi) {
                 $ozellik_deger = $_POST['ozellik_deger'][$index];
-        
-                // **Boşlukları temizle ve verinin gerçekten dolu olup olmadığını kontrol et**
-                if (empty(trim($ozellik_adi)) || empty(trim($ozellik_deger))) {
-                    continue; // Eğer veri boş veya sadece boşluklardan oluşuyorsa, kaydetme!
+                if (!empty(trim($ozellik_adi)) && !empty(trim($ozellik_deger))) {
+                    $stmt_ozellik->execute([$urun_id, $ozellik_adi, $ozellik_deger]);
                 }
-        
-                // Eğer özellik adı ve değeri gerçekten doluysa, veri tabanına ekle
-                $stmt_ozellik->execute([$urun_id, $ozellik_adi, $ozellik_deger]);
             }
         }
-        
 
         header("Location: urun_ekle.php?success=1");
         exit();
@@ -73,19 +62,79 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 }
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['islem']) && $_POST['islem'] === 'urun_kaydet') {
+    try {
+        $db->beginTransaction();
+
+        // Ürün bilgilerini kaydet
+        $insertUrun = $db->prepare("
+            INSERT INTO urunler (urun_adi, marka_adi, ana_kategori_id, alt_kategori_id, eklenme_tarihi)
+            VALUES (?, ?, ?, ?, NOW())
+        ");
+        
+        $insertUrun->execute([
+            $_POST['urun_adi'],
+            $_POST['marka_adi'],
+            $_POST['ana_kategori_id'],
+            $_POST['alt_kategori_id']
+        ]);
+
+        $urun_id = $db->lastInsertId();
+
+        // Özellikleri kaydet
+        if (isset($_POST['ozellikler'])) {
+            $ozellikler = json_decode($_POST['ozellikler'], true);
+            $insertOzellik = $db->prepare("
+                INSERT INTO urun_ozellik (urun_id, ozellik_adi, ozellik_deger)
+                VALUES (?, ?, ?)
+            ");
+
+            foreach ($ozellikler as $ozellik) {
+                $insertOzellik->execute([
+                    $urun_id,
+                    $ozellik['adi'],
+                    $ozellik['deger']
+                ]);
+            }
+        }
+
+        // Resimleri kaydet
+        if (isset($_FILES)) {
+            $insertResim = $db->prepare("INSERT INTO resimler (urun_id) VALUES (?)");
+            $insertResim->execute([$urun_id]);
+            
+            $updateResim = $db->prepare("UPDATE resimler SET resim? = ? WHERE urun_id = ?");
+            
+            for ($i = 1; $i <= 4; $i++) {
+                if (isset($_FILES["resim$i"]) && $_FILES["resim$i"]['error'] === 0) {
+                    $resimData = file_get_contents($_FILES["resim$i"]['tmp_name']);
+                    $updateResim->execute([$i, $resimData, $urun_id]);
+                }
+            }
+        }
+
+        $db->commit();
+        echo json_encode(['success' => true]);
+        exit;
+
+    } catch (Exception $e) {
+        $db->rollBack();
+        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+        exit;
+    }
+}
 
 // Ana kategorileri çek
 try {
     $db = Database::getInstance()->getConnection();
     $anaKategoriQuery = $db->query("
-        SELECT kategori_id, kategori_adi 
-        FROM kategori 
-        WHERE parent_id IS NULL 
-        ORDER BY kategori_adi
+        SELECT ana_kategori_id, ana_kategori_adi 
+        FROM ana_kategori 
+        ORDER BY ana_kategori_adi ASC
     ");
     $anaKategoriler = $anaKategoriQuery->fetchAll(PDO::FETCH_ASSOC);
 } catch (Exception $e) {
-    $error = "Kategoriler yüklenirken hata oluştu: " . $e->getMessage();
+    $error = "Ana kategoriler yüklenirken hata oluştu: " . $e->getMessage();
 }
 ?>
 
@@ -97,8 +146,7 @@ try {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Beydem Hırdavat - Ürün Ekle</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        body {
+    <style>body {
             margin: 0;
             font-family: Arial, sans-serif;
             background-color: #f5f5f5;
@@ -109,6 +157,7 @@ try {
             display: flex;
             min-height: calc(100vh - 40px);
             gap: 20px;
+            position: relative;
         }
 
         .sidebar {
@@ -117,7 +166,10 @@ try {
             border-radius: 10px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
             padding: 20px 0;
-            flex-shrink: 0;
+            position: fixed;
+            top: 20px;
+            bottom: 20px;
+            overflow-y: auto;
         }
 
         .panel-title {
@@ -136,7 +188,7 @@ try {
 
         .menu-item {
             padding: 12px 20px;
-            color: #666;
+            color: inherit;
             cursor: pointer;
             transition: all 0.3s ease;
             display: flex;
@@ -153,7 +205,7 @@ try {
 
         .menu-item.active {
             background-color: #ff6b00;
-            color: white;
+            color: white !important;
         }
 
         .menu-item i {
@@ -162,7 +214,8 @@ try {
         }
 
         .main-content {
-            flex-grow: 1;
+            margin-left: 300px;
+            width: calc(100% - 300px);
             background: #fff;
             border-radius: 10px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
@@ -459,14 +512,6 @@ try {
                     <i class="fas fa-address-book"></i>
                     İletişim Kayıtları
                 </a>
-                <a href="stok_kontrolleri.php" class="menu-item">
-                    <i class="fas fa-box-archive"></i>
-                    Stok Kontrolleri
-                </a>
-                <a href="satislar.php" class="menu-item">
-                    <i class="fas fa-shopping-cart"></i>
-                    Satışlar
-                </a>
             </ul>
         </div>
 
@@ -511,8 +556,8 @@ try {
                                     <select name="ana_kategori" id="anaKategori" class="kategori-select" required>
                                         <option value="">Ana Kategori Seçiniz</option>
                                         <?php foreach ($anaKategoriler as $kategori): ?>
-                                            <option value="<?= htmlspecialchars($kategori['kategori_id']) ?>">
-                                                <?= htmlspecialchars($kategori['kategori_adi']) ?>
+                                            <option value="<?= htmlspecialchars($kategori['ana_kategori_id']) ?>">
+                                                <?= htmlspecialchars($kategori['ana_kategori_adi']) ?>
                                             </option>
                                         <?php endforeach; ?>
                                     </select>
@@ -631,15 +676,18 @@ try {
             if (secilenAnaKategoriId) {
                 try {
                     // Alt kategorileri AJAX ile getir
-                    const response = await fetch(`get_alt_kategoriler.php?parent_id=${secilenAnaKategoriId}`);
+                    const response = await fetch(`get_alt_kategoriler.php?ana_kategori_id=${secilenAnaKategoriId}`);
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
                     const altKategoriler = await response.json();
                     
                     // Alt kategorileri select'e ekle
-                    if (altKategoriler.length > 0) {
+                    if (altKategoriler && altKategoriler.length > 0) {
                         altKategoriler.forEach(kategori => {
                             const option = document.createElement('option');
-                            option.value = kategori.kategori_id;
-                            option.textContent = kategori.kategori_adi;
+                            option.value = kategori.alt_kategori_id;
+                            option.textContent = kategori.alt_kategori_adi;
                             altKategoriSelect.appendChild(option);
                         });
                         // Alt kategori select'ini aktif et ve göster
@@ -652,6 +700,7 @@ try {
                     }
                 } catch (error) {
                     console.error('Alt kategoriler yüklenirken hata:', error);
+                    alert('Alt kategoriler yüklenirken bir hata oluştu');
                     altKategoriSelect.disabled = true;
                     altKategoriSelect.style.display = 'none';
                 }
@@ -659,6 +708,51 @@ try {
                 // Ana kategori seçili değilse alt kategori select'ini deaktif et ve gizle
                 altKategoriSelect.disabled = true;
                 altKategoriSelect.style.display = 'none';
+            }
+        });
+
+        // Kaydet butonu için event listener
+        document.querySelector('.btn-primary').addEventListener('click', async function() {
+            // Tüm özellikleri topla
+            const ozellikler = [];
+            document.querySelectorAll('.ozellik-satir').forEach(satir => {
+                ozellikler.push({
+                    adi: satir.querySelector('.ozellik-adi').textContent,
+                    deger: satir.querySelector('.ozellik-deger').textContent
+                });
+            });
+
+            try {
+                const formData = new FormData();
+                formData.append('islem', 'urun_kaydet');
+                formData.append('ozellikler', JSON.stringify(ozellikler));
+                formData.append('urun_adi', document.querySelector('[name="urun_adi"]').value);
+                formData.append('marka_adi', document.querySelector('[name="marka_adi"]').value);
+                formData.append('ana_kategori_id', document.querySelector('[name="ana_kategori_id"]').value);
+                formData.append('alt_kategori_id', document.querySelector('[name="alt_kategori_id"]').value);
+
+                // Resimleri ekle
+                const resimInputs = document.querySelectorAll('input[type="file"]');
+                resimInputs.forEach((input, index) => {
+                    if (input.files[0]) {
+                        formData.append(`resim${index + 1}`, input.files[0]);
+                    }
+                });
+
+                const response = await fetch('urun_ekle.php', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    alert('Ürün başarıyla kaydedildi!');
+                    window.location.href = 'urun_ayarlari.php'; // Başarılı kayıttan sonra ürün listesine yönlendir
+                } else {
+                    throw new Error(data.error || 'Kayıt işlemi başarısız');
+                }
+            } catch (error) {
+                alert('Hata: ' + error.message);
             }
         });
 
