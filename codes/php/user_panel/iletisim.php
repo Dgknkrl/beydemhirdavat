@@ -181,16 +181,103 @@
                 padding: 10px 12px;
             }
         }
+
+        .alert {
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid transparent;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .alert-success {
+            color: #155724;
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+
+        .alert-error {
+            color: #721c24;
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+        }
     </style>
 </head>
 <body>
     <?php 
     $page = 'iletisim';
     include 'navbar.php'; 
+    
+    require_once 'db_user_connection.php';
+
+    $message = '';
+    $messageType = '';
+
+    if ($_SERVER["REQUEST_METHOD"] == "POST") {
+        try {
+            // Veritabanı bağlantısını al
+            $db = Database::getInstance();
+            $conn = $db->getConnection();
+
+            // Form verilerini al ve temizle
+            function cleanInput($data) {
+                return htmlspecialchars(strip_tags(trim($data)));
+            }
+
+            $ad = cleanInput($_POST['name'] ?? '');
+            $soyad = cleanInput($_POST['surname'] ?? '');
+            $eposta = cleanInput($_POST['email'] ?? '');
+            $konu = cleanInput($_POST['subject'] ?? '');
+            $mesaj = cleanInput($_POST['message'] ?? '');
+
+            // Validasyonlar
+            if (empty($ad) || empty($soyad) || empty($eposta) || empty($konu) || empty($mesaj)) {
+                throw new Exception('Lütfen tüm alanları doldurunuz!');
+            }
+
+            if (!filter_var($eposta, FILTER_VALIDATE_EMAIL)) {
+                throw new Exception('Geçersiz e-posta formatı!');
+            }
+
+            if (!preg_match("/^[a-zA-ZğüşıöçĞÜŞİÖÇ\s]+$/u", $ad) || !preg_match("/^[a-zA-ZğüşıöçĞÜŞİÖÇ\s]+$/u", $soyad)) {
+                throw new Exception('Ad ve soyad sadece harf içerebilir!');
+            }
+
+            // SQL sorgusu hazırla
+            $sql = "INSERT INTO iletisim_formu (ad, soyad, eposta, konu, mesaj) VALUES (:ad, :soyad, :eposta, :konu, :mesaj)";
+            $stmt = $conn->prepare($sql);
+
+            // Parametreleri bind et
+            $stmt->bindParam(':ad', $ad);
+            $stmt->bindParam(':soyad', $soyad);
+            $stmt->bindParam(':eposta', $eposta);
+            $stmt->bindParam(':konu', $konu);
+            $stmt->bindParam(':mesaj', $mesaj);
+
+            // Sorguyu çalıştır
+            if ($stmt->execute()) {
+                $message = 'Mesajınız başarıyla gönderildi. En kısa sürede size dönüş yapılacaktır.';
+                $messageType = 'success';
+            } else {
+                throw new Exception('Mesaj gönderilirken bir hata oluştu.');
+            }
+
+        } catch (Exception $e) {
+            $message = $e->getMessage();
+            $messageType = 'error';
+            error_log("İletişim formu hatası: " . $e->getMessage());
+        }
+    }
     ?>
 
     <div class="content">
-        <div class="contact-container">            
+        <div class="contact-container">
+            <?php if ($message): ?>
+            <div class="alert alert-<?php echo htmlspecialchars($messageType); ?>">
+                <?php echo htmlspecialchars($message); ?>
+            </div>
+            <?php endif; ?>
+
             <div class="contact-info">
                 <h2 class="info-title">İletişim Bilgileri</h2>
                 <div class="info-items">
@@ -220,21 +307,21 @@
 
             <div class="contact-form">
                 <h2 class="form-title">İletişim Formu</h2>
-                <form action="iletisim_gonder.php" method="POST">
+                <form method="POST" onsubmit="return validateForm()">
                     <div class="form-group">
-                        <input type="text" name="name" placeholder="Adınız" required>
+                        <input type="text" name="name" placeholder="Adınız" required minlength="2" maxlength="50" pattern="[a-zA-ZğüşıöçĞÜŞİÖÇ\s]+" title="Sadece harf kullanabilirsiniz">
                     </div>
                     <div class="form-group">
-                        <input type="text" name="surname" placeholder="Soyadınız" required>
+                        <input type="text" name="surname" placeholder="Soyadınız" required minlength="2" maxlength="50" pattern="[a-zA-ZğüşıöçĞÜŞİÖÇ\s]+" title="Sadece harf kullanabilirsiniz">
                     </div>
                     <div class="form-group">
-                        <input type="email" name="email" placeholder="E-posta Adresiniz" required>
+                        <input type="email" name="email" placeholder="E-posta Adresiniz" required maxlength="100">
                     </div>
                     <div class="form-group">
-                        <input type="text" name="subject" placeholder="Konu" required>
+                        <input type="text" name="subject" placeholder="Konu" required minlength="3" maxlength="100">
                     </div>
                     <div class="form-group">
-                        <textarea name="message" placeholder="Mesajınız" required></textarea>
+                        <textarea name="message" placeholder="Mesajınız" required minlength="10" maxlength="1000"></textarea>
                     </div>
                     <button type="submit" class="submit-btn">Gönder</button>
                 </form>
@@ -243,5 +330,53 @@
     </div>
 
     <?php include 'footer.php'; ?>
+
+    <script>
+    function validateForm() {
+        const name = document.querySelector('input[name="name"]').value.trim();
+        const surname = document.querySelector('input[name="surname"]').value.trim();
+        const email = document.querySelector('input[name="email"]').value.trim();
+        const subject = document.querySelector('input[name="subject"]').value.trim();
+        const message = document.querySelector('textarea[name="message"]').value.trim();
+
+        // Boş alan kontrolü
+        if (!name || !surname || !email || !subject || !message) {
+            alert('Lütfen tüm alanları doldurunuz.');
+            return false;
+        }
+
+        // E-posta formatı kontrolü
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            alert('Lütfen geçerli bir e-posta adresi giriniz.');
+            return false;
+        }
+
+        // Ad ve soyad kontrolü (sadece harf ve boşluk)
+        const nameRegex = /^[a-zA-ZğüşıöçĞÜŞİÖÇ\s]+$/;
+        if (!nameRegex.test(name) || !nameRegex.test(surname)) {
+            alert('Ad ve soyad sadece harf içerebilir.');
+            return false;
+        }
+
+        // Minimum uzunluk kontrolleri
+        if (name.length < 2 || surname.length < 2) {
+            alert('Ad ve soyad en az 2 karakter olmalıdır.');
+            return false;
+        }
+
+        if (subject.length < 3) {
+            alert('Konu en az 3 karakter olmalıdır.');
+            return false;
+        }
+
+        if (message.length < 10) {
+            alert('Mesaj en az 10 karakter olmalıdır.');
+            return false;
+        }
+
+        return true;
+    }
+    </script>
 </body>
 </html> 

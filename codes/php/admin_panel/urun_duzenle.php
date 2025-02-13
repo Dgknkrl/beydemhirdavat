@@ -44,7 +44,7 @@ try {
     $ozellikQuery->execute([$urun_id]);
     $ozellikler = $ozellikQuery->fetchAll(PDO::FETCH_ASSOC);
 
-    // POST işlemleri için AJAX kontrolü ekleyelim
+    // POST işlemleri için AJAX kontrolü
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $islem = $_POST['islem'] ?? '';
         
@@ -67,7 +67,6 @@ try {
                         echo json_encode(['success' => false, 'error' => $e->getMessage()]);
                         exit;
                     }
-                    break;
 
                 case 'ozellik_sil':
                     try {
@@ -82,21 +81,29 @@ try {
                         echo json_encode(['success' => false, 'error' => $e->getMessage()]);
                         exit;
                     }
-                    break;
 
                 case 'resim_guncelle':
-                    if (isset($_FILES['resim'])) {
-                        $resimNo = $_POST['resim_no'];
-                        $resimData = file_get_contents($_FILES['resim']['tmp_name']);
-                        
-                        $updateResim = $db->prepare("
-                            UPDATE resimler 
-                            SET resim$resimNo = ? 
-        WHERE urun_id = ?
-                        ");
-                        $updateResim->execute([$resimData, $urun_id]);
+                    try {
+                        if (isset($_FILES['resim'])) {
+                            $resimNo = $_POST['resim_no'];
+                            $resimData = file_get_contents($_FILES['resim']['tmp_name']);
+                            
+                            $updateResim = $db->prepare("
+                                UPDATE resimler 
+                                SET resim$resimNo = ? 
+                                WHERE urun_id = ?
+                            ");
+                            $result = $updateResim->execute([$resimData, $urun_id]);
+                            
+                            echo json_encode(['success' => $result]);
+                            exit;
+                        }
+                        echo json_encode(['success' => false, 'error' => 'Resim yüklenemedi']);
+                        exit;
+                    } catch (Exception $e) {
+                        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+                        exit;
                     }
-                    break;
 
                 case 'ozellik_ekle':
                     try {
@@ -112,7 +119,7 @@ try {
                         if ($result) {
                             echo json_encode([
                                 'success' => true,
-                                'ozellik_id' => $db->lastInsertId() // Yeni eklenen özelliğin ID'sini dön
+                                'ozellik_id' => $db->lastInsertId()
                             ]);
                         } else {
                             echo json_encode([
@@ -120,14 +127,14 @@ try {
                                 'error' => 'Özellik eklenemedi'
                             ]);
                         }
+                        exit;
                     } catch (Exception $e) {
                         echo json_encode([
                             'success' => false,
                             'error' => $e->getMessage()
                         ]);
+                        exit;
                     }
-                    exit;
-                    break;
 
                 case 'temel_bilgiler':
                     try {
@@ -177,9 +184,8 @@ try {
                         }
                     } catch (Exception $e) {
                         echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+                        exit;
                     }
-                    exit;
-                    break;
 
                 case 'kategori_guncelle':
                     try {
@@ -191,7 +197,7 @@ try {
                                 UPDATE urunler 
                                 SET ana_kategori_id = ?, 
                                     alt_kategori_id = NULL 
-        WHERE urun_id = ?
+                                WHERE urun_id = ?
                             ");
                             $result = $updateQuery->execute([$value, $urun_id]);
                             
@@ -222,14 +228,13 @@ try {
                         } else {
                             throw new Exception('Kategori güncellenemedi');
                         }
-} catch (Exception $e) {
+                    } catch (Exception $e) {
                         echo json_encode([
                             'success' => false,
                             'error' => $e->getMessage()
                         ]);
+                        exit;
                     }
-                    exit;
-                    break;
             }
         }
         // Normal form gönderimi için
@@ -888,30 +893,7 @@ try {
 </head>
 <body>
     <div class="container">
-        <!-- Sol Menü -->
-        <div class="sidebar">
-            <h2 class="panel-title">PANEL AYARLARI</h2>
-            <ul class="menu-list">
-                <li class="menu-group">
-                    <a href="urun_ayarlari.php" class="menu-item active">
-                        <i class="fas fa-box"></i>
-                        Ürün Ayarları
-                    </a>
-                    <ul class="submenu">
-                        <li><a href="urun_ayarlari.php" class="menu-item">Ürünleri Görüntüle</a></li>
-                        <li><a href="urun_ekle.php" class="menu-item">Ürün Ekle</a></li>
-                    </ul>
-                </li>
-                <a href="kategori_ayarlari.php" class="menu-item">
-                    <i class="fas fa-tags"></i>
-                    Kategori Ayarları
-                </a>
-                <a href="iletisim_kayitlari.php" class="menu-item">
-                    <i class="fas fa-address-book"></i>
-                    İletişim Kayıtları
-                </a>
-            </ul>
-        </div>
+        <?php include 'includes/sidebar.php'; ?>
 
         <!-- Ana İçerik -->
         <div class="main-content">

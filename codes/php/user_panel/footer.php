@@ -1,10 +1,11 @@
 <style>
     .footer {
-        background-color: #003366;
+        background: linear-gradient(135deg, #003366, #002347);
         color: white;
-        padding: 40px 0;
-        font-family: 'Montserrat', sans-serif;
+        padding: 60px 0 40px;
+        font-family: 'Poppins', sans-serif;
         position: relative;
+        margin-top: 50px;
     }
 
     .footer-container {
@@ -12,51 +13,49 @@
         margin: auto;
         display: grid;
         grid-template-columns: 2fr 1fr 1fr;
-        gap: 30px;
+        gap: 40px;
         padding: 0 20px;
     }
 
     .footer-section {
         display: flex;
         flex-direction: column;
-        padding: 0 20px;
-    }
-
-    .footer-section:first-child {
-        padding-left: 0;
-    }
-
-    .footer-section:last-child {
-        padding-right: 0;
     }
 
     .footer-logo {
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 15px;
         margin-bottom: 25px;
+        transition: transform 0.3s ease;
+    }
+
+    .footer-logo:hover {
+        transform: translateY(-3px);
     }
 
     .footer-logo img {
-        height: 45px;
+        height: 50px;
         width: auto;
+        filter: brightness(1.1);
     }
 
     .footer-logo-text {
         color: white;
-        font-size: 14px;
-        font-weight: bold;
-        line-height: 1.2;
-        text-align: left;
+        font-size: 15px;
+        font-weight: 600;
+        line-height: 1.3;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
 
     .footer h3 {
         color: white;
-        font-size: 16px;
-        margin-bottom: 20px;
-        font-weight: bold;
+        font-size: 18px;
+        margin-bottom: 25px;
+        font-weight: 600;
         position: relative;
-        padding-bottom: 10px;
+        padding-bottom: 12px;
     }
 
     .footer h3::after {
@@ -64,9 +63,10 @@
         position: absolute;
         left: 0;
         bottom: 0;
-        width: 30px;
-        height: 2px;
-        background-color: #ff6b00;
+        width: 40px;
+        height: 3px;
+        background: linear-gradient(90deg, #ff6b00, #ff8533);
+        border-radius: 2px;
     }
 
     .footer-links {
@@ -76,105 +76,95 @@
     }
 
     .footer-links li {
-        margin-bottom: 12px;
+        margin-bottom: 15px;
     }
 
     .footer-links a {
-        color: white;
+        color: rgba(255, 255, 255, 0.85);
         text-decoration: none;
         font-size: 14px;
-        opacity: 0.8;
-        transition: color 0.3s ease;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
     }
 
     .footer-links a:hover {
-        opacity: 1;
         color: #ff6b00;
+        transform: translateX(5px);
+    }
+
+    .footer-links a::before {
+        content: '→';
+        opacity: 0;
+        transition: all 0.3s ease;
+    }
+
+    .footer-links a:hover::before {
+        opacity: 1;
     }
 
     .footer-contact {
-        margin-bottom: 15px;
-
+        display: flex;
         align-items: center;
-        gap: 10px;
-        color: #fff;
+        gap: 12px;
+        color: rgba(255, 255, 255, 0.85);
         font-size: 14px;
-        opacity: 0.8;
-        transition: color 0.3s ease;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
     }
 
     .footer-contact:hover {
-        opacity: 1;
         color: #ff6b00;
+        transform: translateX(5px);
     }
 
     .footer-contact i {
         color: #ff6b00;
-        font-size: 16px;
+        font-size: 18px;
         width: 20px;
         text-align: center;
-    }
-
-    .newsletter-form {
-        display: flex;
-        gap: 10px;
-        margin-top: 15px;
-    }
-
-    .newsletter-form input {
-        flex: 1;
-        padding: 8px 12px;
-        border: none;
-        border-radius: 4px;
-        font-family: inherit;
-    }
-
-    .newsletter-form button {
-        background: #ff6b00;
-        color: white;
-        border: none;
-        padding: 8px 15px;
-        border-radius: 4px;
-        cursor: pointer;
-        transition: background 0.3s ease;
-    }
-
-    .newsletter-form button:hover {
-        background: #ff8533;
     }
 
     .social-links {
         display: flex;
         gap: 15px;
-        margin-top: 25px;
+        margin-top: 30px;
     }
 
     .social-links a {
         color: white;
-        font-size: 18px;
-        opacity: 0.8;
+        background: rgba(255, 255, 255, 0.1);
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
         transition: all 0.3s ease;
     }
 
     .social-links a:hover {
-        opacity: 1;
-        color: #ff6b00;
-        transform: translateY(-2px);
+        background: #ff6b00;
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(255, 107, 0, 0.3);
     }
 
     .footer-whatsapp {
         position: fixed;
         bottom: 30px;
         right: 30px;
-        background: #25d366;
+        background: linear-gradient(135deg, #25d366, #128C7E);
         color: white;
-        padding: 12px 25px;
+        padding: 12px 28px;
         border-radius: 30px;
         text-decoration: none;
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 10px;
         font-weight: 500;
+        font-size: 15px;
         box-shadow: 0 4px 15px rgba(37, 211, 102, 0.3);
         transition: all 0.3s ease;
         z-index: 1000;
@@ -186,48 +176,85 @@
     }
 
     .footer-whatsapp i {
-        font-size: 20px;
+        font-size: 22px;
     }
 
+    /* Tablet için Medya Sorguları */
     @media (max-width: 992px) {
+        .footer {
+            padding: 50px 0 30px;
+        }
+
         .footer-container {
             grid-template-columns: 1fr 1fr;
-            gap: 40px;
+            gap: 30px;
         }
+
         .footer-section:first-child {
             grid-column: 1 / -1;
         }
+
+        .footer h3 {
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+
+        .footer h3::after {
+            width: 35px;
+        }
+    }
+
+    /* Mobil için Medya Sorguları */
+    @media (max-width: 576px) {
+        .footer {
+            padding: 40px 0 25px;
+        }
+
+        .footer-container {
+            grid-template-columns: 1fr;
+            gap: 25px;
+            padding: 0 15px;
+        }
+
         .footer-section {
-            padding: 0;
+            text-align: center;
             align-items: center;
-            text-align: center;
         }
-        .footer-contact {
+
+        .footer-logo {
             justify-content: center;
         }
-        .footer-links {
+
+        .footer h3 {
             text-align: center;
         }
-        .social-links {
-            justify-content: center;
-        }
+
         .footer h3::after {
             left: 50%;
             transform: translateX(-50%);
         }
-    }
 
-    @media (max-width: 576px) {
-        .footer-container {
-            grid-template-columns: 1fr;
+        .footer-contact {
+            justify-content: center;
         }
+
+        .footer-links a {
+            justify-content: center;
+        }
+
+        .social-links {
+            justify-content: center;
+        }
+
         .footer-whatsapp {
             bottom: 20px;
             right: 20px;
             padding: 10px 20px;
+            font-size: 14px;
         }
-        .footer {
-            padding: 30px 0;
+
+        .footer-whatsapp i {
+            font-size: 20px;
         }
     }
 </style>
@@ -253,9 +280,9 @@
                 <span>info@beydemhirdavat.com</span>
             </div>
             <div class="social-links">
-                <a href="#" target="_blank"><i class="fab fa-instagram"></i></a>
-                <a href="#" target="_blank"><i class="fab fa-linkedin"></i></a>
-                <a href="#" target="_blank"><i class="fab fa-facebook"></i></a>
+                <a href="#" target="_blank" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+                <a href="#" target="_blank" aria-label="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+                <a href="#" target="_blank" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
             </div>
         </div>
 

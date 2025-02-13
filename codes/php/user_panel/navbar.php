@@ -263,7 +263,16 @@
         }
     }
 
-    @media (max-width: 576px) {
+    @media (max-width: 768px) {
+        .navbar {
+            position: relative;
+            padding: 15px 10px;
+        }
+
+        .main-content {
+            padding-top: 0 !important;
+        }
+
         .logo-container img {
             height: 35px;
         }
@@ -337,25 +346,48 @@
     const floatingWhatsapp = document.querySelector('.floating-whatsapp');
 
     window.addEventListener('scroll', () => {
-        const currentScroll = window.pageYOffset;
+        // Ekran genişliğini kontrol et
+        if (window.innerWidth > 768) {
+            const currentScroll = window.pageYOffset;
 
-        if (currentScroll <= 0) {
+            if (currentScroll <= 0) {
+                navbar.classList.remove('navbar--hidden');
+                floatingWhatsapp.classList.remove('show');
+                return;
+            }
+
+            if (currentScroll > lastScroll && !navbar.classList.contains('navbar--hidden')) {
+                // Aşağı scroll
+                navbar.classList.add('navbar--hidden');
+                floatingWhatsapp.classList.add('show');
+            } else if (currentScroll < lastScroll && navbar.classList.contains('navbar--hidden')) {
+                // Yukarı scroll
+                navbar.classList.remove('navbar--hidden');
+                floatingWhatsapp.classList.remove('show');
+            }
+
+            lastScroll = currentScroll;
+        } else {
+            // 768px ve altında navbar ve whatsapp butonu her zaman görünür olsun
             navbar.classList.remove('navbar--hidden');
-            floatingWhatsapp.classList.remove('show');
-            return;
-        }
-
-        if (currentScroll > lastScroll && !navbar.classList.contains('navbar--hidden')) {
-            // Aşağı scroll
-            navbar.classList.add('navbar--hidden');
             floatingWhatsapp.classList.add('show');
-        } else if (currentScroll < lastScroll && navbar.classList.contains('navbar--hidden')) {
-            // Yukarı scroll
-            navbar.classList.remove('navbar--hidden');
-            floatingWhatsapp.classList.remove('show');
         }
+    });
 
-        lastScroll = currentScroll;
+    // Sayfa yüklendiğinde de kontrol et
+    window.addEventListener('load', () => {
+        if (window.innerWidth <= 768) {
+            navbar.classList.remove('navbar--hidden');
+            floatingWhatsapp.classList.add('show');
+        }
+    });
+
+    // Ekran boyutu değiştiğinde de kontrol et
+    window.addEventListener('resize', () => {
+        if (window.innerWidth <= 768) {
+            navbar.classList.remove('navbar--hidden');
+            floatingWhatsapp.classList.add('show');
+        }
     });
 
     document.querySelector('.menu-toggle').addEventListener('click', function() {

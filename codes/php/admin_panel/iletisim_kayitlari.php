@@ -119,29 +119,7 @@ $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
 </head>
 <body>
     <div class="container">
-        <div class="sidebar">
-            <h2 class="panel-title">PANEL AYARLARI</h2>
-            <ul class="menu-list">
-                <li class="menu-group">
-                    <a href="urun_ayarlari.php" class="menu-item active">
-                        <i class="fas fa-box"></i>
-                        Ürün Ayarları
-                    </a>
-                    <ul class="submenu">
-                        <li><a href="urun_ayarlari.php" class="menu-item">Ürünleri Görüntüle</a></li>
-                        <li><a href="urun_ekle.php" class="menu-item">Ürün Ekle</a></li>
-                    </ul>
-                </li>
-                <a href="kategori_ayarlari.php" class="menu-item">
-                    <i class="fas fa-tags"></i>
-                    Kategori Ayarları
-                </a>
-                <a href="iletisim_kayitlari.php" class="menu-item">
-                    <i class="fas fa-address-book"></i>
-                    İletişim Kayıtları
-                </a>
-            </ul>
-        </div>
+    <?php include 'includes/sidebar.php'; ?>
 
         <div class="main-content">
         <h2>İLETİŞİM KAYITLARI</h2>
