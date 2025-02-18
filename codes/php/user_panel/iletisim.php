@@ -157,6 +157,43 @@
             background: #ff8533;
             transform: translateY(-2px);
         }
+        .section-title {
+            text-align: center;
+            font-size: 36px;
+            color: #333;
+            margin: 30px 0 40px;
+            flex-shrink: 0;
+            position: relative;
+            font-weight: 700;
+            padding-bottom: 15px;
+            font-family: 'Poppins', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: -3px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 10px;
+            height: 10px;
+            background: #ff6b00;
+            border-radius: 50%;
+        }
+
+        .section-title::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 4px;
+            background: linear-gradient(90deg, #ff6b00, #ff9248);
+            border-radius: 2px;
+        }
 
         @media (max-width: 768px) {
             .contact-container {
@@ -200,6 +237,12 @@
             color: #721c24;
             background-color: #f8d7da;
             border-color: #f5c6cb;
+        }
+        .contact-info{
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-direction: row;
         }
     </style>
 </head>
@@ -271,6 +314,8 @@
     ?>
 
     <div class="content">
+    <h1 class="section-title">İLETİŞİM BİLGİLERİMİZ</h1>
+
         <div class="contact-container">
             <?php if ($message): ?>
             <div class="alert alert-<?php echo htmlspecialchars($messageType); ?>">
@@ -279,7 +324,6 @@
             <?php endif; ?>
 
             <div class="contact-info">
-                <h2 class="info-title">İletişim Bilgileri</h2>
                 <div class="info-items">
                     <div class="info-item">
                         <i class="fas fa-phone"></i>
@@ -302,6 +346,10 @@
                             <p>Sırrıpaşa Mahallesi Çenedere Caddesi No:33 DERİNCE/KOCAELİ</p>
                         </div>
                     </div>
+                </div>
+                <div class="mapp">
+                <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3022.1169361852553!2d29.820046076831986!3d40.75945273470795!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x14cb4741f4d62965%3A0xb69933d4daac9c96!2sBEYDEM%20MAK%C4%B0NA!5e0!3m2!1str!2str!4v1739693776501!5m2!1str!2str" 
+                    width="500" height="250" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
                 </div>
             </div>
 

@@ -237,6 +237,18 @@ $page = 'kataloglar';
         .section-title::after {
             content: '';
             position: absolute;
+            bottom: -3px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 10px;
+            height: 10px;
+            background: #ff6b00;
+            border-radius: 50%;
+        }
+
+        .section-title::before {
+            content: '';
+            position: absolute;
             bottom: 0;
             left: 50%;
             transform: translateX(-50%);
@@ -244,18 +256,6 @@ $page = 'kataloglar';
             height: 4px;
             background: linear-gradient(90deg, #ff6b00, #ff9248);
             border-radius: 2px;
-        }
-
-        .section-title::before {
-            content: '';
-            position: absolute;
-            bottom: -5px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 10px;
-            height: 10px;
-            background: #ff6b00;
-            border-radius: 50%;
         }
 
         .no-image {

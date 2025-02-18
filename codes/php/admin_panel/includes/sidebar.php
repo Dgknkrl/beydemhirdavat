@@ -97,6 +97,13 @@ $current_page = basename($_SERVER['PHP_SELF'], '.php');
 <div class="sidebar">
     <h2 class="panel-title">PANEL AYARLARI</h2>
     <ul class="menu-list">
+        <!-- Ana Sayfa Ayarları -->
+        <a href="anasayfa_ayarlari.php" class="menu-item <?php echo $current_page === 'anasayfa_ayarlari' ? 'active' : ''; ?>">
+            <i class="fas fa-home"></i>
+            Ana Sayfa Ayarları
+        </a>
+
+        <!-- Mevcut Ürün Ayarları Grubu -->
         <li class="menu-group">
             <a href="urun_ayarlari.php" class="menu-item <?php echo in_array($current_page, ['urun_ayarlari', 'urun_ekle', 'urun_duzenle']) ? 'active' : ''; ?>">
                 <i class="fas fa-box"></i>
@@ -115,11 +122,13 @@ $current_page = basename($_SERVER['PHP_SELF'], '.php');
                 </li>
             </ul>
         </li>
+
+        <!-- Diğer mevcut menü öğeleri -->
         <a href="kategori_ayarlari.php" class="menu-item <?php echo $current_page === 'kategori_ayarlari' ? 'active' : ''; ?>">
             <i class="fas fa-tags"></i>
             Kategori Ayarları
         </a>
-        <a href="kataloglar_ayarlari.php" class="menu-item <?php echo $current_page === 'kataloglar' ? 'active' : ''; ?>">
+        <a href="kataloglar_ayarlari.php" class="menu-item <?php echo $current_page === 'kataloglar_ayarlari' ? 'active' : ''; ?>">
             <i class="fas fa-book"></i>
             Kataloglar
         </a>
@@ -127,6 +136,5 @@ $current_page = basename($_SERVER['PHP_SELF'], '.php');
             <i class="fas fa-address-book"></i>
             İletişim Kayıtları
         </a>
-        
     </ul>
 </div> 

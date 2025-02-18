@@ -189,25 +189,18 @@
             background: #555;
         }
         .siralama-select {
-            width: 100%;
-            padding: 12px 15px;
-            border: 1px solid #eee;
-            border-radius: 6px;
-            margin: 15px 20px;
+            height: 38px;
+            padding: 0 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
             font-size: 14px;
             color: #444;
+            background-color: #fff;
             cursor: pointer;
-            background-color: #f8f8f8;
-            width: calc(100% - 40px);
-            transition: all 0.2s ease;
-        }
-        .siralama-select:hover {
-            border-color: #ff6b00;
-        }
-        .siralama-select:focus {
-            outline: none;
-            border-color: #ff6b00;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            min-width: 200px;
+            max-width: 250px;
+            flex: 1;
+            box-sizing: border-box;
         }
         
         .urunler-container {
@@ -215,41 +208,54 @@
             display: flex;
             flex-direction: column;
             gap: 20px;
+            width: 100%;
         }
         
         .siralama-container {
             display: flex;
-            justify-content: flex-end;
+            justify-content: space-between;
+            align-items: center;
             padding: 0;
+            gap: 20px;
+            margin-bottom: 20px;
+            width: 100%;
         }
         
-        .siralama-select {
-            width: auto;
-            padding: 10px 15px;
-            border: 1px solid #eee;
-            border-radius: 6px;
+        .arama-kutusu {
+            position: relative;
+            flex: 3;
+            min-width: 0;
+        }
+        
+        .arama-kutusu input {
+            width: 100%;
+            height: 38px;
+            padding: 0 35px 0 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
             font-size: 14px;
             color: #444;
-            cursor: pointer;
             background-color: #fff;
             transition: all 0.2s ease;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            margin: 0;
-            min-width: 200px;
+            box-sizing: border-box;
         }
         
-        .siralama-select:hover {
-            border-color: #ff6b00;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        .arama-kutusu i {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #666;
+            font-size: 14px;
         }
         
+        .arama-kutusu input:focus,
         .siralama-select:focus {
             outline: none;
-            border-color: #ff6b00;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-color: #003366;
+            box-shadow: 0 0 0 2px rgba(0, 51, 102, 0.1);
         }
         
-        /* Mevcut .urunler-grid stilini güncelle */
         .urunler-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -327,21 +333,22 @@
 
         /* Scroll çubuğunu özelleştir */
         .filtre-panel::-webkit-scrollbar {
-            width: 8px;
+            width: 4px;
         }
 
         .filtre-panel::-webkit-scrollbar-track {
             background: #f1f1f1;
-            border-radius: 4px;
+            border-radius: 10px;
         }
 
         .filtre-panel::-webkit-scrollbar-thumb {
             background: #003366;
-            border-radius: 4px;
+            border-radius: 10px;
         }
 
         .filtre-panel::-webkit-scrollbar-thumb:hover {
-            background: #002244;
+            background:rgb(5, 122, 240);
+            cursor: pointer;
         }
     </style>
 </head>
@@ -358,6 +365,9 @@
     
     // Sıralama parametresini al
     $siralama = isset($_GET['siralama']) ? $_GET['siralama'] : 'varsayilan';
+    
+    // Arama parametresini al
+    $arama = isset($_GET['arama']) ? $_GET['arama'] : '';
     
     // Ana kategorileri çek
     $ana_kategoriler_query = "SELECT * FROM ana_kategori";
@@ -424,6 +434,12 @@
                 AND CONCAT(uo2.ozellik_adi, ': ', uo2.ozellik_deger) = '$ozellik'
             )";
         }
+    }
+    
+    // Ürünleri çeken sorguya arama filtresini ekle
+    if (!empty($arama)) {
+        $arama = mysqli_real_escape_string($conn, $arama);
+        $urunler_query .= " AND (u.urun_adi LIKE '%$arama%' OR u.marka_adi LIKE '%$arama%')";
     }
     
     $urunler_query .= " GROUP BY u.urun_id, u.urun_adi, u.marka_adi, u.eklenme_tarihi, u.alt_kategori_id, 
@@ -593,6 +609,12 @@
         <div class="urunler-container">
             <!-- Sıralama seçeneğini buraya taşı -->
             <div class="siralama-container">
+                <div class="arama-kutusu">
+                    <input type="text" name="arama" placeholder="Ürün Ara..." 
+                           value="<?php echo isset($_GET['arama']) ? htmlspecialchars($_GET['arama']) : ''; ?>"
+                           onchange="document.getElementById('filtre-form').submit()">
+                    <i class="fas fa-search"></i>
+                </div>
                 <select name="siralama" class="siralama-select" onchange="document.getElementById('filtre-form').submit()">
                     <option value="varsayilan" <?php echo $siralama == 'varsayilan' ? 'selected' : ''; ?>>Varsayılan Sıralama</option>
                     <option value="fiyat_artan" <?php echo $siralama == 'fiyat_artan' ? 'selected' : ''; ?>>Fiyat (Artan)</option>
