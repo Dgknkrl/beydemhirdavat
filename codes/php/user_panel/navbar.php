@@ -217,6 +217,7 @@
         font-size: 20px;
     }
 
+    /* Tablet ve Küçük Ekranlar (1024px'e kadar) */
     @media (max-width: 1024px) {
         .nav-container {
             flex-wrap: wrap;
@@ -231,20 +232,33 @@
         .menu-toggle {
             display: block;
             margin-left: auto;
+            padding: 8px;
+            cursor: pointer;
+        }
+
+        .menu-toggle i {
+            font-size: 24px;
+            color: var(--primary-color);
         }
 
         .nav-menu {
-            flex-basis: 100%;
             display: none;
-            gap: 0;
-            background: #ffffff;
-            padding: 10px 0;
-            border-top: 1px solid #eee;
+            width: 100%;
+            position: fixed;
+            top: 85px; /* Navbar yüksekliği */
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 0;
+            margin: 0;
+            height: calc(100vh - 85px);
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
 
         .nav-menu.active {
-            display: flex;
-            flex-direction: column;
+            display: block;
         }
 
         .nav-item {
@@ -254,23 +268,38 @@
 
         .nav-link {
             display: block;
-            padding: 15px 0;
+            padding: 15px 20px;
+            font-size: 16px;
+            text-align: left;
+        }
+
+        .nav-link:after {
+            display: none;
         }
 
         .whatsapp-btn {
-            margin: 15px auto;
-            order: 3;
+            display: none; /* Mobilde floating-whatsapp kullanılacak */
+        }
+
+        .floating-whatsapp {
+            display: flex;
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1001;
         }
     }
 
+    /* Mobil Ekranlar (768px'e kadar) */
     @media (max-width: 768px) {
         .navbar {
-            position: relative;
-            padding: 15px 10px;
-        }
-
-        .main-content {
-            padding-top: 0 !important;
+            padding: 10px 0;
+            position: fixed; /* Navbar'ı sabit tut */
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            background: white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
 
         .logo-container img {
@@ -279,23 +308,94 @@
 
         .logo-text {
             font-size: 14px;
+            line-height: 1.2;
+        }
+
+        .nav-menu {
+            top: 65px; /* Daha küçük navbar yüksekliği */
+            height: calc(100vh - 65px);
         }
 
         .nav-link {
-            font-size: 14px;
-            padding: 12px 0;
-        }
-
-        .footer-whatsapp {
-            bottom: 20px;
-            right: 20px;
-            padding: 10px 20px;
+            padding: 12px 20px;
+            font-size: 15px;
         }
 
         .floating-whatsapp {
-            bottom: 20px;
-            right: 20px;
-            padding: 10px 20px;
+            padding: 8px 15px;
+            font-size: 14px;
+            bottom: 15px;
+            right: 15px;
+        }
+
+        .floating-whatsapp i {
+            font-size: 18px;
+        }
+    }
+
+    /* Küçük Mobil Ekranlar (480px'e kadar) */
+    @media (max-width: 480px) {
+        .navbar {
+            padding: 8px 0;
+        }
+
+        .logo-container img {
+            height: 30px;
+        }
+
+        .logo-text {
+            font-size: 12px;
+        }
+
+        .menu-toggle i {
+            font-size: 20px;
+        }
+
+        .nav-menu {
+            top: 55px; /* En küçük navbar yüksekliği */
+            height: calc(100vh - 55px);
+        }
+
+        .nav-link {
+            padding: 10px 15px;
+            font-size: 14px;
+        }
+
+        .floating-whatsapp {
+            padding: 6px 12px;
+            font-size: 13px;
+            bottom: 10px;
+            right: 10px;
+        }
+
+        .floating-whatsapp i {
+            font-size: 16px;
+        }
+    }
+
+    /* Yüksek DPI Ekranlar için Optimizasyon */
+    @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+        .logo-container img {
+            image-rendering: -webkit-optimize-contrast;
+        }
+    }
+
+    /* Karanlık Mod Desteği */
+    @media (prefers-color-scheme: dark) {
+        .navbar {
+            background-color: #ffffff;
+        }
+    }
+
+    /* Yatay Mobil Ekranlar */
+    @media (max-height: 480px) and (orientation: landscape) {
+        .nav-menu {
+            overflow-y: scroll;
+        }
+
+        .nav-link {
+            padding: 8px 15px;
+            font-size: 14px;
         }
     }
 </style>
@@ -341,11 +441,26 @@
 </a>
 
 <script>
+    document.querySelector('.menu-toggle').addEventListener('click', function() {
+        document.querySelector('.nav-menu').classList.toggle('active');
+        // Menü açıkken scroll'u engelle
+        if (document.querySelector('.nav-menu').classList.contains('active')) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+    });
+
     let lastScroll = 0;
     const navbar = document.querySelector('.navbar');
     const floatingWhatsapp = document.querySelector('.floating-whatsapp');
 
     window.addEventListener('scroll', () => {
+        // Menü açıkken scroll eventi çalışmasın
+        if (document.querySelector('.nav-menu').classList.contains('active')) {
+            return;
+        }
+
         // Ekran genişliğini kontrol et
         if (window.innerWidth > 768) {
             const currentScroll = window.pageYOffset;
@@ -374,23 +489,22 @@
         }
     });
 
-    // Sayfa yüklendiğinde de kontrol et
-    window.addEventListener('load', () => {
-        if (window.innerWidth <= 768) {
-            navbar.classList.remove('navbar--hidden');
-            floatingWhatsapp.classList.add('show');
+    // Sayfa dışına tıklandığında menüyü kapat
+    document.addEventListener('click', function(e) {
+        const navMenu = document.querySelector('.nav-menu');
+        const menuToggle = document.querySelector('.menu-toggle');
+        
+        if (!navMenu.contains(e.target) && !menuToggle.contains(e.target) && navMenu.classList.contains('active')) {
+            navMenu.classList.remove('active');
+            document.body.style.overflow = '';
         }
     });
 
-    // Ekran boyutu değiştiğinde de kontrol et
-    window.addEventListener('resize', () => {
-        if (window.innerWidth <= 768) {
-            navbar.classList.remove('navbar--hidden');
-            floatingWhatsapp.classList.add('show');
+    // ESC tuşuna basıldığında menüyü kapat
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && document.querySelector('.nav-menu').classList.contains('active')) {
+            document.querySelector('.nav-menu').classList.remove('active');
+            document.body.style.overflow = '';
         }
-    });
-
-    document.querySelector('.menu-toggle').addEventListener('click', function() {
-        document.querySelector('.nav-menu').classList.toggle('active');
     });
 </script>

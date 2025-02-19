@@ -6,6 +6,9 @@
     <title>Beydem Hırdavat - İletişim</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
+        *{
+            box-sizing: border-box;
+        }
         body {
             margin: 0;
             padding: 0;
@@ -243,6 +246,17 @@
             align-items: center;
             justify-content: space-between;
             flex-direction: row;
+        }
+        @media screen and (max-width: 768px) {
+            .contact-info{
+                flex-direction: column;
+            }
+            .mapp *{
+                margin-top: 20px;
+                border-radius: 10px;
+                width: 300px;
+                height: 150px;
+            }
         }
     </style>
 </head>

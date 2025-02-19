@@ -279,6 +279,10 @@
                 <i class="fas fa-envelope"></i>
                 <span>info@beydemhirdavat.com</span>
             </div>
+            <div class="footer-contact">
+                <i class="fab fa-whatsapp"></i>
+                <span>WhatsApp: +90 541 841 43 23</span>
+            </div>
             <div class="social-links">
                 <a href="#" target="_blank" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
                 <a href="#" target="_blank" aria-label="LinkedIn"><i class="fab fa-linkedin-in"></i></a>

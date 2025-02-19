@@ -192,7 +192,6 @@ try {
 
         .menu-item.active {
             background-color: #ff6b00;
-            color: white !important;
         }
 
         .menu-item i {
